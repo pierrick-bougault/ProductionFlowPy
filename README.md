@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SimPy GUI - Éditeur de Flux de Production / Production Flow Editor
 
 Interface graphique interactive pour modéliser et visualiser des flux de production avec SimPy.
@@ -282,3 +283,7 @@ Pour toute question ou problème, créez une issue sur le dépôt du projet.
 
 *For any questions or issues, create an issue on the project repository.*
 
+=======
+# ProductionFlowPy
+ProductionFlowPy is an open-source simulation environment designed to model, visualize, and analyze production flows using a fully graphical interface. It enables users to construct complex manufacturing systems through intuitive drag and drop interactions, without requiring manual coding. 
+>>>>>>> 3f09681f92316dbd50048d2b6469b1910cf368f8
