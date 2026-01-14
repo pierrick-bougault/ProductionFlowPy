@@ -32,6 +32,7 @@ python main.py
 4. **Run simulation** with ▶ Start, ⏸ Pause, ⏹ Stop
 
 ## Tutorial
+Explanations are provided in the file in /tutorial
 
 ## Project Structure
 
@@ -81,6 +82,9 @@ python main.py
 2. **Connecter les nœuds** avec l'outil "Ajouter connexion"
 3. **Configurer** en double-cliquant sur les nœuds ou clic droit sur les connexions
 4. **Lancer la simulation** avec ▶ Démarrer, ⏸ Pause, ⏹ Arrêter
+
+## Tutoriel
+Les explications sont fournies dans le fichier situé dans /tutorial
 
 ## Structure du Projet
 
