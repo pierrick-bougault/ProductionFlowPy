@@ -1,4 +1,4 @@
-# SimPy GUI - Production Flow Editor
+# ProductionFlowPy - Production Flow Simulator
 
 Interactive graphical interface for modeling and visualizing production flows with SimPy.
 
@@ -50,7 +50,7 @@ MIT License
 
 ---
 
-# SimPy GUI - Éditeur de Flux de Production
+# ProductionFlowPy  - Simulateur de flux de production 
 
 Interface graphique interactive pour modéliser et visualiser des flux de production avec SimPy.
 
