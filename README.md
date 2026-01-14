@@ -2,6 +2,8 @@
 
 Interactive graphical interface for modeling and visualizing production flows with SimPy.
 
+<img width="1913" height="1017" alt="Screenshot 2026-01-14 115951" src="https://github.com/user-attachments/assets/93deebec-5498-45c8-a8e4-c346778920e8" />
+
 ## Features
 
 - **Graphical Editor** - Interactive canvas with drag & drop, visual connections, real-time buffers
