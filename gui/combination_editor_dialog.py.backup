@@ -1,0 +1,437 @@
+"""
+Dialogue pour configurer les combinaisons d'un nœud
+"""
+import tkinter as tk
+from tkinter import ttk, messagebox
+from models.combination import Combination, CombinationIngredient, CombinationSet
+from typing import List, Optional
+
+
+class CombinationEditorDialog:
+    """Dialogue pour créer/éditer une combinaison"""
+    
+    def __init__(self, parent, flow_model, node, combination: Optional[Combination] = None):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Éditeur de Combinaison")
+        self.dialog.geometry("700x600")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        self.flow_model = flow_model
+        self.node = node
+        self.combination = combination
+        self.result = None
+        
+        # Collecter tous les types d'items disponibles en amont
+        self.available_types = self._get_available_item_types()
+        
+        self._create_widgets()
+        
+        # Charger les données si on édite une combinaison existante
+        if self.combination:
+            self._load_combination_data()
+        
+        # Centrer la fenêtre
+        self._center_window()
+        
+        self.dialog.wait_window()
+    
+    def _center_window(self):
+        """Centre la fenêtre sur l'écran"""
+        self.dialog.update_idletasks()
+        width = self.dialog.winfo_width()
+        height = self.dialog.winfo_height()
+        x = (self.dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.dialog.winfo_screenheight() // 2) - (height // 2)
+        self.dialog.geometry(f'{width}x{height}+{x}+{y}')
+    
+    def _get_available_item_types(self) -> List[tuple]:
+        """Récupère tous les types d'items disponibles en amont du nœud"""
+        types = []
+        visited = set()
+        
+        def collect_types_recursive(node_id):
+            if node_id in visited:
+                return
+            visited.add(node_id)
+            
+            node = self.flow_model.get_node(node_id)
+            if not node:
+                return
+            
+            # Si c'est une source avec types configurés
+            if node.is_source and node.item_type_config:
+                for item_type in node.item_type_config.item_types:
+                    type_tuple = (item_type.type_id, item_type.name, item_type.color)
+                    if type_tuple not in types:
+                        types.append(type_tuple)
+            
+            # Remonter récursivement
+            for conn_id in node.input_connections:
+                conn = self.flow_model.get_connection(conn_id)
+                if conn:
+                    collect_types_recursive(conn.source_id)
+        
+        # Partir du nœud actuel
+        collect_types_recursive(self.node.node_id)
+        
+        return types
+    
+    def _create_widgets(self):
+        # Frame principal avec scrollbar
+        main_frame = ttk.Frame(self.dialog, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Informations de base
+        info_frame = ttk.LabelFrame(main_frame, text="Informations", padding="5")
+        info_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # ID de la combinaison (caché, non modifiable)
+        self.combination_id_var = tk.StringVar(value=self.combination.combination_id if self.combination else f"combination_{id(self)}")
+        
+        ttk.Label(info_frame, text="Nom de la combinaison:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
+        self.combination_name_var = tk.StringVar(value=self.combination.name if self.combination else "Nouvelle Combinaison")
+        ttk.Entry(info_frame, textvariable=self.combination_name_var, width=30).grid(row=0, column=1, padx=5, pady=2)
+        
+        # Composants
+        ingredients_frame = ttk.LabelFrame(main_frame, text="Composants Requis", padding="5")
+        ingredients_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Liste des composants
+        columns = ('type', 'quantité', 'connexion')
+        self.ingredients_tree = ttk.Treeview(ingredients_frame, columns=columns, show='headings', height=8)
+        self.ingredients_tree.heading('type', text='Type d\'Item')
+        self.ingredients_tree.heading('quantité', text='Quantité')
+        self.ingredients_tree.heading('connexion', text='Connexion (optionnel)')
+        
+        self.ingredients_tree.column('type', width=250)
+        self.ingredients_tree.column('quantité', width=100)
+        self.ingredients_tree.column('connexion', width=200)
+        
+        scrollbar = ttk.Scrollbar(ingredients_frame, orient=tk.VERTICAL, command=self.ingredients_tree.yview)
+        self.ingredients_tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.ingredients_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Boutons pour gérer les ingrédients
+        ing_buttons_frame = ttk.Frame(main_frame)
+        ing_buttons_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(ing_buttons_frame, text="Ajouter Composant", command=self._add_ingredient).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ing_buttons_frame, text="Modifier", command=self._edit_ingredient).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ing_buttons_frame, text="Supprimer", command=self._remove_ingredient).pack(side=tk.LEFT, padx=2)
+        
+        # Output (résultat)
+        output_frame = ttk.LabelFrame(main_frame, text="Résultat de la Combinaison", padding="5")
+        output_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(output_frame, text="Type produit:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
+        self.output_type_var = tk.StringVar(value=self.combination.output_type_id if self.combination else "")
+        
+        if self.available_types:
+            type_names = [f"{name} ({type_id})" for type_id, name, _ in self.available_types]
+            output_combo = ttk.Combobox(output_frame, textvariable=self.output_type_var, values=type_names, width=30)
+        else:
+            output_combo = ttk.Entry(output_frame, textvariable=self.output_type_var, width=30)
+        output_combo.grid(row=0, column=1, padx=5, pady=2)
+        
+        ttk.Label(output_frame, text="Quantité produite:").grid(row=1, column=0, sticky=tk.W, padx=5, pady=2)
+        self.output_quantity_var = tk.IntVar(value=self.combination.output_quantity if self.combination else 1)
+        ttk.Spinbox(output_frame, from_=1, to=100, textvariable=self.output_quantity_var, width=10).grid(row=1, column=1, sticky=tk.W, padx=5, pady=2)
+        
+        # Boutons OK/Annuler
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(button_frame, text="OK", command=self._on_ok).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Annuler", command=self.dialog.destroy).pack(side=tk.RIGHT, padx=5)
+    
+    def _load_combination_data(self):
+        """Charge les données d'une combinaison existante"""
+        # Charger les ingrédients
+        for ingredient in self.combination.ingredients:
+            # Trouver le nom du type
+            type_name = ingredient.type_id
+            for type_id, name, _ in self.available_types:
+                if type_id == ingredient.type_id:
+                    type_name = name
+                    break
+            
+            # Trouver le nom de la connexion
+            conn_name = ingredient.connection_id if ingredient.connection_id else "N'importe quelle"
+            if ingredient.connection_id:
+                conn = self.flow_model.get_connection(ingredient.connection_id)
+                if conn:
+                    source = self.flow_model.get_node(conn.source_id)
+                    conn_name = f"{source.name if source else conn.source_id} → {self.node.name}"
+            
+            self.ingredients_tree.insert('', tk.END, values=(
+                f"{type_name} ({ingredient.type_id})",
+                ingredient.quantity,
+                conn_name
+            ), tags=(ingredient.type_id, ingredient.connection_id))
+    
+    def _add_ingredient(self):
+        """Ajoute un nouveau composant"""
+        if not self.available_types:
+            messagebox.showwarning("Attention", "Aucun type d'item disponible en amont de ce nœud.")
+            return
+        
+        # Dialogue pour ajouter un composant
+        dialog = tk.Toplevel(self.dialog)
+        dialog.title("Ajouter un Composant")
+        dialog.geometry("400x200")
+        dialog.transient(self.dialog)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="Type d'item:").grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
+        type_var = tk.StringVar()
+        type_names = [f"{name} ({type_id})" for type_id, name, _ in self.available_types]
+        type_combo = ttk.Combobox(dialog, textvariable=type_var, values=type_names, width=30)
+        type_combo.grid(row=0, column=1, padx=10, pady=10)
+        type_combo.current(0)
+        
+        ttk.Label(dialog, text="Quantité:").grid(row=1, column=0, sticky=tk.W, padx=10, pady=10)
+        quantity_var = tk.IntVar(value=1)
+        ttk.Spinbox(dialog, from_=1, to=100, textvariable=quantity_var, width=10).grid(row=1, column=1, sticky=tk.W, padx=10, pady=10)
+        
+        ttk.Label(dialog, text="Connexion (optionnel):").grid(row=2, column=0, sticky=tk.W, padx=10, pady=10)
+        conn_var = tk.StringVar(value="N'importe quelle")
+        
+        # Liste des connexions entrantes
+        conn_options = ["N'importe quelle"]
+        for conn_id in self.node.input_connections:
+            conn = self.flow_model.get_connection(conn_id)
+            if conn:
+                source = self.flow_model.get_node(conn.source_id)
+                conn_options.append(f"{source.name if source else conn.source_id} → {self.node.name}")
+        
+        conn_combo = ttk.Combobox(dialog, textvariable=conn_var, values=conn_options, width=30)
+        conn_combo.grid(row=2, column=1, padx=10, pady=10)
+        conn_combo.current(0)
+        
+        def on_add():
+            # Extraire le type_id du format "name (type_id)"
+            selected = type_var.get()
+            type_id = selected.split('(')[-1].rstrip(')')
+            
+            # Extraire le connection_id
+            conn_id = None
+            if conn_var.get() != "N'importe quelle":
+                conn_idx = conn_options.index(conn_var.get()) - 1
+                if 0 <= conn_idx < len(self.node.input_connections):
+                    conn_id = self.node.input_connections[conn_idx]
+            
+            self.ingredients_tree.insert('', tk.END, values=(
+                selected,
+                quantity_var.get(),
+                conn_var.get()
+            ), tags=(type_id, conn_id))
+            
+            dialog.destroy()
+        
+        ttk.Button(dialog, text="Ajouter", command=on_add).grid(row=3, column=0, columnspan=2, pady=20)
+    
+    def _edit_ingredient(self):
+        """Modifie le composant sélectionné"""
+        selection = self.ingredients_tree.selection()
+        if not selection:
+            messagebox.showwarning("Attention", "Veuillez sélectionner un composant à modifier.")
+            return
+        
+        # Récupérer les valeurs actuelles
+        item = selection[0]
+        values = self.ingredients_tree.item(item, 'values')
+        tags = self.ingredients_tree.item(item, 'tags')
+        
+        # TODO: Implémenter l'édition
+        messagebox.showinfo("Info", "Fonctionnalité d'édition en cours de développement.")
+    
+    def _remove_ingredient(self):
+        """Supprime le composant sélectionné"""
+        selection = self.ingredients_tree.selection()
+        if not selection:
+            messagebox.showwarning("Attention", "Veuillez sélectionner un composant à supprimer.")
+            return
+        
+        for item in selection:
+            self.ingredients_tree.delete(item)
+    
+    def _on_ok(self):
+        """Valide et crée la combinaison"""
+        # Vérifier que les champs obligatoires sont remplis
+        if not self.combination_name_var.get():
+            messagebox.showerror("Erreur", "Le nom de la combinaison est obligatoire.")
+            return
+        
+        if not self.output_type_var.get():
+            messagebox.showerror("Erreur", "Le type de sortie est obligatoire.")
+            return
+        
+        # Récupérer les ingrédients
+        ingredients = []
+        for item in self.ingredients_tree.get_children():
+            values = self.ingredients_tree.item(item, 'values')
+            tags = self.ingredients_tree.item(item, 'tags')
+            
+            type_id = tags[0] if tags else ""
+            conn_id = tags[1] if len(tags) > 1 and tags[1] != "None" else None
+            quantity = int(values[1])
+            
+            ingredients.append(CombinationIngredient(
+                type_id=type_id,
+                quantity=quantity,
+                connection_id=conn_id
+            ))
+        
+        if not ingredients:
+            messagebox.showerror("Erreur", "La combinaison doit contenir au moins un ingrédient.")
+            return
+        
+        # Extraire le type_id du format "name (type_id)" si nécessaire
+        output_type = self.output_type_var.get()
+        if '(' in output_type:
+            output_type = output_type.split('(')[-1].rstrip(')')
+        
+        # Créer la combinaison
+        self.result = Combination(
+            combination_id=self.combination_id_var.get(),
+            name=self.combination_name_var.get(),
+            ingredients=ingredients,
+            output_type_id=output_type,
+            output_quantity=self.output_quantity_var.get(),
+            priority=0  # Priorité non utilisée
+        )
+        
+        self.dialog.destroy()
+
+
+class CombinationSetDialog:
+    """Dialogue principal pour gérer le ensemble de combinaisons d'un nœud"""
+    
+    def __init__(self, parent, flow_model, node):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(f"Ensemble de Combinaisons - {node.name}")
+        self.dialog.geometry("800x500")
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        self.flow_model = flow_model
+        self.node = node
+        
+        self._create_widgets()
+        self._refresh_combinations()
+        
+        # Centrer la fenêtre
+        self._center_window()
+        
+        self.dialog.wait_window()
+    
+    def _center_window(self):
+        """Centre la fenêtre sur l'écran"""
+        self.dialog.update_idletasks()
+        width = self.dialog.winfo_width()
+        height = self.dialog.winfo_height()
+        x = (self.dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.dialog.winfo_screenheight() // 2) - (height // 2)
+        self.dialog.geometry(f'{width}x{height}+{x}+{y}')
+    
+    def _create_widgets(self):
+        main_frame = ttk.Frame(self.dialog, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Info
+        info_label = ttk.Label(main_frame, text="Configurez les combinaisons pour ce nœud. Chaque combinaison définit une combinaison d'items en entrée qui produit un type spécifique en sortie.")
+        info_label.pack(fill=tk.X, pady=(0, 10))
+        
+        # Liste des combinaisons
+        list_frame = ttk.Frame(main_frame)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ('nom', 'composants', 'sortie', 'priorité')
+        self.combinations_tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        self.combinations_tree.heading('nom', text='Nom de la Combinaison')
+        self.combinations_tree.heading('composants', text='Composants')
+        self.combinations_tree.heading('sortie', text='Produit')
+        self.combinations_tree.heading('priorité', text='Priorité')
+        
+        self.combinations_tree.column('nom', width=200)
+        self.combinations_tree.column('composants', width=300)
+        self.combinations_tree.column('sortie', width=150)
+        self.combinations_tree.column('priorité', width=80)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.combinations_tree.yview)
+        self.combinations_tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.combinations_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Boutons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(button_frame, text="Ajouter une Combinaison", command=self._add_combination).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Modifier", command=self._edit_combination).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Supprimer", command=self._remove_combination).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Fermer", command=self.dialog.destroy).pack(side=tk.RIGHT, padx=5)
+    
+    def _refresh_combinations(self):
+        """Rafraîchit la liste des combinaisons"""
+        self.combinations_tree.delete(*self.combinations_tree.get_children())
+        
+        for combination in self.node.combination_set:
+            # Résumé des composants
+            components_summary = ", ".join([f"{ing.quantity}× {ing.type_id}" for ing in combination.ingredients])
+            
+            # Produit
+            output_summary = f"{combination.output_quantity}× {combination.output_type_id}"
+            
+            self.combinations_tree.insert('', tk.END, values=(
+                combination.name,
+                components_summary,
+                output_summary,
+                combination.priority
+            ), tags=(combination.combination_id,))
+    
+    def _add_combination(self):
+        """Ajoute une nouvelle combinaison"""
+        editor = CombinationEditorDialog(self.dialog, self.flow_model, self.node)
+        if editor.result:
+            self.node.combination_set.add_combination(editor.result)
+            self._refresh_combinations()
+    
+    def _edit_combination(self):
+        """Modifie la combinaison sélectionnée"""
+        selection = self.combinations_tree.selection()
+        if not selection:
+            messagebox.showwarning("Attention", "Veuillez sélectionner une combinaison à modifier.")
+            return
+        
+        tags = self.combinations_tree.item(selection[0], 'tags')
+        combination_id = tags[0] if tags else None
+        
+        if combination_id:
+            combination = self.node.combination_set.get_combination(combination_id)
+            if combination:
+                editor = CombinationEditorDialog(self.dialog, self.flow_model, self.node, combination)
+                if editor.result:
+                    # Supprimer l'ancienne et ajouter la nouvelle
+                    self.node.combination_set.remove_combination(combination_id)
+                    self.node.combination_set.add_combination(editor.result)
+                    self._refresh_combinations()
+    
+    def _remove_combination(self):
+        """Supprime la combinaison sélectionnée"""
+        selection = self.combinations_tree.selection()
+        if not selection:
+            messagebox.showwarning("Attention", "Veuillez sélectionner une combinaison à supprimer.")
+            return
+        
+        tags = self.combinations_tree.item(selection[0], 'tags')
+        combination_id = tags[0] if tags else None
+        
+        if combination_id:
+            if messagebox.askyesno("Confirmation", "Voulez-vous vraiment supprimer cette combinaison ?"):
+                self.node.combination_set.remove_combination(combination_id)
+                self._refresh_combinations()

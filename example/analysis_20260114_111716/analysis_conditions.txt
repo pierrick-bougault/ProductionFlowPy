@@ -1,0 +1,339 @@
+﻿============================================================
+SIMULATION ANALYSIS REPORT
+============================================================
+
+Analysis date: 2026-01-14 11:17:17
+
+ANALYSIS PARAMETERS
+------------------------------------------------------------
+Simulation duration:: 3000.0 s
+Analysis interval: 1.0 s
+Number of intervals: 3000
+Time unit: s
+
+SYSTEM CONFIGURATION
+------------------------------------------------------------
+Number of nodes: 18
+Number of connections: 18
+Number of probes: 1
+Number of time probes: 1
+
+NODE DETAILS
+------------------------------------------------------------
+
+Node:: Axle_source (Flux entrant (Source))
+  ID: node_0
+  Position: (x=126.2, y=160.4)
+  Generation interval: 1.00 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 1
+  Outgoing connections: 1
+    → Axle_preparation [Buffer: 5]
+  Utilization rate: 59.6%
+
+Node:: Axle_preparation (Custom)
+  ID: node_1
+  Position: (x=368.3, y=159.4)
+  Processing time:: 3.50 s
+  Mode:: Loi Normale
+  Std dev: 0.24 s
+  Incoming connections: 1
+    ← Axle_source [Buffer: 5]
+  Outgoing connections: 1
+    → Hub_preparation [Buffer: 10]
+  Utilization rate: 100.0%
+
+Node:: Hub_preparation (Custom)
+  ID: node_3
+  Position: (x=704.8, y=322.7)
+  Processing time:: 7.00 s
+  Mode:: Loi Normale Asymétrique
+  Std dev: 0.24 s
+  Incoming connections: 4
+    ← Shell_source [Buffer: 10]
+    ← Bearings_source [Buffer: 40]
+    ← Flanges_source [Buffer: 40]
+    ← Axle_preparation [Buffer: 10]
+  Outgoing connections: 1
+    → Assembly_Spoke+Hub
+  Utilization rate: 8.0%
+
+Node:: Shell_source (Flux entrant (Source))
+  ID: node_6
+  Position: (x=361.0, y=273.0)
+  Generation interval: 1.00 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 2
+  Outgoing connections: 1
+    → Hub_preparation [Buffer: 10]
+  Utilization rate: 95.8%
+
+Node:: Bearings_source (Flux entrant (Source))
+  ID: node_7
+  Position: (x=362.5, y=348.2)
+  Generation interval: 3.00 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 2
+  Outgoing connections: 1
+    → Hub_preparation [Buffer: 40]
+  Utilization rate: 14.3%
+
+Node:: Flanges_source (Flux entrant (Source))
+  ID: node_8
+  Position: (x=363.4, y=429.5)
+  Generation interval: 5.00 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 4
+  Outgoing connections: 1
+    → Hub_preparation [Buffer: 40]
+  Utilization rate: 0.0%
+
+Node:: Spoke_source (Flux entrant (Source))
+  ID: node_9
+  Position: (x=325.7, y=574.1)
+  Generation interval: 4.00 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 1
+  Outgoing connections: 1
+    → Assembly [Buffer: 20]
+  Utilization rate: 0.0%
+
+Node:: Assembly (Custom)
+  ID: node_10
+  Position: (x=566.5, y=614.1)
+  Processing time:: 14.40 s
+  Mode:: Loi Normale Asymétrique
+  Std dev: 0.40 s
+  Incoming connections: 2
+    ← Spoke_source [Buffer: 20]
+    ← Nipples [Buffer: 100]
+  Outgoing connections: 1
+    → Check
+  Utilization rate: 25.0%
+
+Node:: Nipples (Flux entrant (Source))
+  ID: node_11
+  Position: (x=324.5, y=691.5)
+  Generation interval: 0.20 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 1
+  Outgoing connections: 1
+    → Assembly [Buffer: 100]
+  Utilization rate: 44.4%
+
+Node:: Check (Custom)
+  ID: node_12
+  Position: (x=808.5, y=612.8)
+  Processing time:: 1.10 s
+  Mode:: Loi Normale
+  Std dev: 0.01 s
+  Incoming connections: 1
+    ← Assembly
+  Outgoing connections: 1
+    → Assembly_Spoke+Hub
+  Utilization rate: 25.0%
+
+Node:: Assembly_Spoke+Hub (Custom)
+  ID: node_13
+  Position: (x=969.4, y=512.4)
+  Processing time:: 5.80 s
+  Mode:: Loi Normale Asymétrique
+  Std dev: 2.42 s
+  Incoming connections: 2
+    ← Hub_preparation
+    ← Check
+  Outgoing connections: 1
+    → Assembly
+  Utilization rate: 8.0%
+
+Node:: Inner_tube_source (Flux entrant (Source))
+  ID: node_14
+  Position: (x=262.8, y=918.8)
+  Generation interval: 0.50 s
+  Mode:: Constant (intervalle fixe)
+  Std dev: 0.20 s
+  Items to generate: Unlimited
+  Batch size: 1
+  Outgoing connections: 1
+    → Splitter [Buffer: 15]
+  Utilization rate: 93.2%
+
+Node:: Splitter (Diviseur (Splitter))
+  ID: node_15
+  Position: (x=512.9, y=918.5)
+  Type: Splitter
+  Mode:: Round-robin (alternance)
+  Incoming connections: 1
+    ← Inner_tube_source [Buffer: 15]
+  Outgoing connections: 2
+    → Inflating_station_1 [Buffer: 5]
+    → Inflating_station_2 [Buffer: 5]
+  Utilization rate: 99.8%
+
+Node:: Inflating_station_1 (Custom)
+  ID: node_16
+  Position: (x=730.4, y=833.9)
+  Processing time:: 3.20 s
+  Mode:: Loi Normale
+  Std dev: 0.03 s
+  Incoming connections: 1
+    ← Splitter [Buffer: 5]
+  Outgoing connections: 1
+    → Merger
+  Utilization rate: 20.1%
+
+Node:: Inflating_station_2 (Custom)
+  ID: node_17
+  Position: (x=730.4, y=1000.7)
+  Processing time:: 2.70 s
+  Mode:: Loi Normale
+  Std dev: 0.04 s
+  Incoming connections: 1
+    ← Splitter [Buffer: 5]
+  Outgoing connections: 1
+    → Merger
+  Utilization rate: 17.0%
+
+Node:: Merger (Concatenateur (Merger))
+  ID: node_18
+  Position: (x=1008.7, y=900.7)
+  Type: Merger
+  Synchronization mode: Premier disponible
+  Incoming connections: 2
+    ← Inflating_station_1
+    ← Inflating_station_2
+  Outgoing connections: 1
+    → Assembly
+  Utilization rate: 0.0%
+
+Node:: Assembly (Custom)
+  ID: node_19
+  Position: (x=1280.8, y=754.0)
+  Processing time:: 3.50 s
+  Mode:: Loi Normale
+  Std dev: 0.49 s
+  Incoming connections: 2
+    ← Assembly_Spoke+Hub
+    ← Merger
+  Outgoing connections: 1
+    → Sink
+  Utilization rate: 6.3%
+
+Node:: Sink (Sortie (Sink))
+  ID: node_20
+  Position: (x=1594.0, y=752.8)
+  Type: Output node
+  Incoming connections: 1
+    ← Assembly
+  Utilization rate: 1.6%
+
+============================================================
+CONNECTION DETAILS
+------------------------------------------------------------
+
+Connection: Axle_source -> Axle_preparation
+  ID: conn_1
+  Buffer capacity: 5 units
+
+Connection: Shell_source -> Hub_preparation
+  ID: conn_3
+  Buffer capacity: 10 units
+
+Connection: Bearings_source -> Hub_preparation
+  ID: conn_4
+  Buffer capacity: 40 units
+
+Connection: Flanges_source -> Hub_preparation
+  ID: conn_5
+  Buffer capacity: 40 units
+
+Connection: Axle_preparation -> Hub_preparation
+  ID: conn_7
+  Buffer capacity: 10 units
+
+Connection: Spoke_source -> Assembly
+  ID: conn_8
+  Buffer capacity: 20 units
+
+Connection: Nipples -> Assembly
+  ID: conn_9
+  Buffer capacity: 100 units
+
+Connection: Assembly -> Check
+  ID: conn_10
+  Buffer capacity: Unlimited capacity
+
+Connection: Hub_preparation -> Assembly_Spoke+Hub
+  ID: conn_11
+  Buffer capacity: Unlimited capacity
+
+Connection: Check -> Assembly_Spoke+Hub
+  ID: conn_12
+  Buffer capacity: Unlimited capacity
+
+Connection: Inner_tube_source -> Splitter
+  ID: conn_13
+  Buffer capacity: 15 units
+
+Connection: Splitter -> Inflating_station_1
+  ID: conn_14
+  Buffer capacity: 5 units
+
+Connection: Splitter -> Inflating_station_2
+  ID: conn_15
+  Buffer capacity: 5 units
+
+Connection: Inflating_station_1 -> Merger
+  ID: conn_16
+  Buffer capacity: Unlimited capacity
+
+Connection: Inflating_station_2 -> Merger
+  ID: conn_17
+  Buffer capacity: Unlimited capacity
+
+Connection: Assembly_Spoke+Hub -> Assembly
+  ID: conn_18
+  Buffer capacity: Unlimited capacity
+
+Connection: Merger -> Assembly
+  ID: conn_19
+  Buffer capacity: Unlimited capacity
+
+Connection: Assembly -> Sink
+  ID: conn_20
+  Buffer capacity: Unlimited capacity
+  Probes: Pipette 1
+
+============================================================
+MEASUREMENT PROBES
+------------------------------------------------------------
+
+Probe: Pipette 1
+  On connection: Assembly -> Sink
+  Mode:: cumulative
+  Color:: #2196F3
+
+============================================================
+TIME PROBES
+------------------------------------------------------------
+
+Time probe: Probe: Hub_preparation
+  On node: Hub_preparation
+  Type: Temps de traitement
+  Color:: #FF6B6B
+
+============================================================
+END OF REPORT
+============================================================
